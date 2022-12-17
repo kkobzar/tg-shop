@@ -29,6 +29,19 @@ if (menu.cities){
 const cityMenu = Markup.inlineKeyboard(citiesMenuArr)
 
 
+//---get all products list
+let productList = []
+for (let cty in menu.products){
+    if (!Object.entries(menu.products[cty]).length){
+        continue;
+    }
+    for(let prod in menu.products[cty]){
+        if (!productList.includes(prod)){
+            productList.push(prod)
+        }
+    }
+}
+
 //get Products in city
 const getProducts = (city = '') => {
     if (!city)
@@ -73,6 +86,29 @@ const showMainMenu = (ctx)=>{
     ctx.reply(`Приветствуем в нашем боте!\nДля начала укажите ваш город:`,cityMenu)
 }
 
+//---Get product available areas
+const getProductArea = (city = '', product = '',ctx=null)=>{
+    if (!city || !product || ctx === null)
+        return false
+
+    let areasBtn = []
+    //get available areas for product
+    if (product.areas.length && menu.cities[storage[ctx.chat.id].city]){
+        for (let area of product.areas){
+            let name = menu.cities[storage[ctx.chat.id].city].districts.find(i=>i.key === area)
+            //console.log(name)
+            areasBtn.push([Markup.button.callback(name.title,name.key)])
+        }
+    }
+
+    if (areasBtn.length){
+        areasBtn.push([homeBnt])
+        return areasBtn
+    }else {
+        return false
+    }
+}
+
 //--- City available products bind
 for (let cty in menu.cities){
     let menu = getProducts(cty)
@@ -83,6 +119,49 @@ for (let cty in menu.cities){
     })
 }
 
+//---Get product info
+const getProductInfo = (city = '', product = '')=> {
+    if (!city || !product)
+        return false
+
+    let foundProduct = false
+    if (menu.products){
+        for (let cty in menu.products){
+            if(cty === city){
+                for (let prd in menu.products[cty]){
+                    if (product === prd){
+                        foundProduct = menu.products[cty][prd]
+                    }
+                }
+            }
+        }
+    }
+
+    return foundProduct
+}
+
+//--- Products order bind
+
+for (let prod of productList){
+    bot.action(prod,ctx=>{
+        if (storage[ctx.chat.id] && storage[ctx.chat.id].city){
+            const product = getProductInfo(storage[ctx.chat.id].city,prod)
+            if (product){
+                //save product to local storage
+                storage[ctx.chat.id].product =prod
+                //get areas
+                const areaButtons = getProductArea(storage[ctx.chat.id].city,product,ctx)
+                if (areaButtons){
+                    ctx.reply(`Город: ${storage[ctx.chat.id].city} \n${product.content?product.content:''}\n`,Markup.inlineKeyboard(areaButtons))
+                }else {
+                    ctx.reply(`Город: ${storage[ctx.chat.id].city} \n${product.content?product.content:''}\n`,Markup.inlineKeyboard([homeBnt]))
+                }
+            }
+        }else {
+            showMainMenu(ctx)
+        }
+    })
+}
 
 //---HOME BUTTON
 bot.action('main', (ctx) => {
