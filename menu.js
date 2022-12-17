@@ -1,4 +1,4 @@
-module.exports.menu = {
+module.exports = {
     "cities":
         {
             "moscow": {
