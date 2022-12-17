@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { Telegraf, Markup} = require('telegraf');
 const menu = require('./menu');
+const {rub2btc} = require('./helpers/conversionHelper')
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
@@ -8,6 +9,9 @@ const storage = {};
 
 const homeBnt = Markup.button.callback('🏡 Главная', 'main')
 
+//---payment buttons
+const payBtn = [[Markup.button.callback('BTC **(Легкий перевод)**','btc-pay')],
+    [Markup.button.callback('XLM <b>(Маленькая комиссия)</b>','xlm-pay')]]
 /*
 *
 * ---CITY MENU
@@ -39,6 +43,16 @@ for (let cty in menu.products){
         if (!productList.includes(prod)){
             productList.push(prod)
         }
+    }
+}
+
+//---Get all districts
+
+let districts =[]
+
+for (let cty in menu.cities){
+    for (let dstrct in menu.cities[cty].districts){
+        districts.push(menu.cities[cty].districts[dstrct])
     }
 }
 
@@ -162,6 +176,59 @@ for (let prod of productList){
         }
     })
 }
+
+/*
+*
+* CITY AREA BIND
+*
+* */
+for (let area of districts){
+    bot.action(area.key,ctx=>{
+        if (!storage[ctx.chat.id] || typeof storage[ctx.chat.id].city === 'undefined'){
+            showMainMenu(ctx)
+            return
+        }
+        if (typeof storage[ctx.chat.id].product === 'undefined' || !storage[ctx.chat.id].product){
+            showProductMenu(ctx,getProducts(storage[ctx.chat.id].city))
+            return
+        }
+
+        storage[ctx.chat.id].area = area.key;
+        let productInfo = getProductInfo(storage[ctx.chat.id].city,storage[ctx.chat.id].product)
+        ctx.reply(`Товар: ${productInfo.title}\nГород: ${storage[ctx.chat.id].city}\nРаён: ${area.key}\nОплата:`,Markup.inlineKeyboard([...payBtn,[homeBnt]]))
+    })
+}
+
+/*
+*
+* PAYMENT ( ͡° ͜ʖ ͡°)
+*
+* */
+
+bot.action('btc-pay',ctx=>{
+    if (!storage[ctx.chat.id] || typeof storage[ctx.chat.id].city === 'undefined'){
+        showMainMenu(ctx)
+        return
+    }
+    if (typeof storage[ctx.chat.id].product === 'undefined' || !storage[ctx.chat.id].product){
+        showProductMenu(ctx,getProducts(storage[ctx.chat.id].city))
+        return
+    }
+
+    let productInfo = getProductInfo(storage[ctx.chat.id].city,storage[ctx.chat.id].product)
+    if (typeof storage[ctx.chat.id].area === 'undefined' || !storage[ctx.chat.id].area){
+        ctx.deleteMessage()
+        ctx.reply(`Товар: ${productInfo.title}\nГород: ${storage[ctx.chat.id].city}\nРаён: ${storage[ctx.chat.id].area}\nОплата:`,Markup.inlineKeyboard([...payBtn,[homeBnt]]))
+        return;
+    }
+    rub2btc(productInfo.price)
+        .then(btcPrice=>{
+            ctx.reply(`К оплате : ${btcPrice} BTC \nКошелек: 1BsDk9mSvvgrQMmP8du3FtFStCuR2dPAr4\n Товар выдается после 3 подтверждений\n Чтобы проверить оплату нажмите кнопку "Проверить оплату"`,
+                Markup.inlineKeyboard([[Markup.button.callback('Проверить оплату','check-pay')],[homeBnt]]))
+        })
+
+
+})
 
 //---HOME BUTTON
 bot.action('main', (ctx) => {
