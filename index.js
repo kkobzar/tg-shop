@@ -1,16 +1,15 @@
 require('dotenv').config();
-const { Telegraf, Markup} = require('telegraf');
+const { Telegraf, Markup,Format} = require('telegraf');
 const menu = require('./menu');
 const {rub2btc} = require('./helpers/conversionHelper')
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-
 const storage = {};
 
 const homeBnt = Markup.button.callback('🏡 Главная', 'main')
 
 //---payment buttons
-const payBtn = [[Markup.button.callback('BTC **(Легкий перевод)**','btc-pay')],
+const payBtn = [[Markup.button.callback('BTC (Легкий перевод)','btc-pay')],
     [Markup.button.callback('XLM <b>(Маленькая комиссия)</b>','xlm-pay')]]
 /*
 *
@@ -90,7 +89,7 @@ const getProducts = (city = '') => {
 const showProductMenu = (ctx,mnu)=>{
     //ctx.deleteMessage()
     if (mnu){
-        ctx.reply('Выбирай:',Markup.inlineKeyboard(mnu))
+        ctx.reply(Format.bold('Выбирай:'),Markup.inlineKeyboard(mnu))
     }else {
         ctx.reply('К сожалению в данном регионе нихуя нэма 😢', Markup.inlineKeyboard([homeBnt]))
     }
@@ -223,11 +222,13 @@ bot.action('btc-pay',ctx=>{
     }
     rub2btc(productInfo.price)
         .then(btcPrice=>{
-            ctx.reply(`К оплате : ${btcPrice} BTC \nКошелек: 1BsDk9mSvvgrQMmP8du3FtFStCuR2dPAr4\n Товар выдается после 3 подтверждений\n Чтобы проверить оплату нажмите кнопку "Проверить оплату"`,
+            ctx.replyWithMarkdown(`К оплате : *${btcPrice} BTC* \n`+"Кошелек: `1BsDk9mSvvgrQMmP8du3FtFStCuR2dPAr4`\n" + `Товар выдается автоматически после 3 подтверждений\n Чтобы проверить оплату нажмите кнопку "Проверить оплату"`,
                 Markup.inlineKeyboard([[Markup.button.callback('Проверить оплату','check-pay')],[homeBnt]]))
         })
+})
 
-
+bot.action('check-pay',ctx => {
+    ctx.reply('Оплата еще не прошла!\nУбедитесь в правельности реквизитов и попробуйте позже',[homeBnt])
 })
 
 //---HOME BUTTON

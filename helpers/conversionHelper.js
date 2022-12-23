@@ -1,11 +1,14 @@
 //import fetch from "node-fetch";
 //const fetch = require('node-fetch')
 const https = require('https');
+const rate = 9.245211206396523e-7;
 const rub2btc = (rub = 0)=>{
     if (rub === 0)
         return 0
 
     return new Promise((resolve, reject)=>{
+        resolve((rate*rub).toFixed(8));
+        return;
         https.request({
             "method": "GET",
             "hostname": "rest.coinapi.io",
@@ -25,7 +28,9 @@ const rub2btc = (rub = 0)=>{
                 resolve((result.rate*rub).toFixed(8));
             });
         }).on('error', err => {
+            resolve((rate*rub).toFixed(8))
             console.log('Error: ', err.message);
+            reject(err.message);
         })
     })
 }
