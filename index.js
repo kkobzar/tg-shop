@@ -51,7 +51,7 @@ let districts =[]
 
 for (let cty in menu.cities){
     for (let dstrct in menu.cities[cty].districts){
-        districts.push(menu.cities[cty].districts[dstrct])
+        districts.push(menu.cities[cty].districts[dstrct].name)
     }
 }
 
